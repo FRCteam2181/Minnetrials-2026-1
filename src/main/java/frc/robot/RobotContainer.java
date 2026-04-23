@@ -15,10 +15,10 @@ import frc.robot.Constants.OperatorConstants;
 import frc.robot.Constants.RollerConstants;
 import frc.robot.commands.AutoCommand;
 import frc.robot.commands.DriveCommand;
-import frc.robot.commands.RollerSpitterCommand;
-import frc.robot.commands.RollerSuckerCommand;
+// import frc.robot.commands.RollerSpitterCommand;
+// import frc.robot.commands.RollerSuckerCommand;
 import frc.robot.subsystems.CANDriveSubsystem;
-import frc.robot.subsystems.CANRollerSubsystem;
+// import frc.robot.subsystems.CANRollerSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -32,7 +32,7 @@ import frc.robot.subsystems.CANRollerSubsystem;
 public class RobotContainer {
   // The robot's subsystems
   private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
-  private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
+  // private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
 
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
@@ -55,17 +55,17 @@ public class RobotContainer {
     // Set the options to show up in the Dashboard for selecting auto modes. If you
     // add additional auto modes you can add additional lines here with
     // autoChooser.addOption
-    autoChooser.setDefaultOption("AutoBestCaseBlue", new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1.7)
-    .andThen(new DriveCommand(() -> 0, () -> 0.5, driveSubsystem).withTimeout(1.1))    
-    .andThen(new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1.5))
-    .andThen(new RollerSpitterCommand(() -> RollerConstants.SPITTER_ROLLER_TOP_EJECT_VALUE, () -> 0.0, () -> RollerConstants.SPITTER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem).withTimeout(1)));
+    // autoChooser.setDefaultOption("AutoBestCaseBlue", new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1.7)
+    // .andThen(new DriveCommand(() -> 0, () -> 0.5, driveSubsystem).withTimeout(1.1))    
+    // .andThen(new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1.5))
+    // .andThen(new RollerSpitterCommand(() -> RollerConstants.SPITTER_ROLLER_TOP_EJECT_VALUE, () -> 0.0, () -> RollerConstants.SPITTER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem).withTimeout(1)));
     
-    autoChooser.addOption("AutoBestCaseRed", new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1.6)
-    .andThen(new DriveCommand(() -> 0, () -> -0.5, driveSubsystem).withTimeout(2.95))    
-    .andThen(new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1.5))
-    .andThen(new RollerSpitterCommand(() -> RollerConstants.SPITTER_ROLLER_TOP_EJECT_VALUE, () -> 0.0, () -> RollerConstants.SPITTER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem).withTimeout(1)));
+    // autoChooser.addOption("AutoBestCaseRed", new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1.6)
+    // .andThen(new DriveCommand(() -> 0, () -> -0.5, driveSubsystem).withTimeout(2.95))    
+    // .andThen(new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1.5))
+    // .andThen(new RollerSpitterCommand(() -> RollerConstants.SPITTER_ROLLER_TOP_EJECT_VALUE, () -> 0.0, () -> RollerConstants.SPITTER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem).withTimeout(1)));
 
-    autoChooser.addOption("WorstCase", new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1));
+    // autoChooser.addOption("WorstCase", new DriveCommand(() -> 0.5, () -> 0, driveSubsystem).withTimeout(1));
     SmartDashboard.putData(autoChooser);
   }
 
@@ -88,13 +88,13 @@ public class RobotContainer {
     // value ejecting the gamepiece while the button is held
 
     // before
-    JoystickButton rollerintakebutton = new JoystickButton(operatorController, 1);
-    rollerintakebutton
-        .whileTrue(new RollerSuckerCommand(() -> RollerConstants.SUCKER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem));
+    // JoystickButton rollerintakebutton = new JoystickButton(operatorController, 1);
+    // rollerintakebutton
+    //     .whileTrue(new RollerSuckerCommand(() -> RollerConstants.SUCKER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem));
     
-        JoystickButton rollerouttakebutton = new JoystickButton(operatorController, 3);        
-        rollerouttakebutton
-        .whileTrue(new RollerSpitterCommand(() -> RollerConstants.SPITTER_ROLLER_TOP_EJECT_VALUE, () -> 0.0, () -> RollerConstants.SPITTER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem));
+    //     JoystickButton rollerouttakebutton = new JoystickButton(operatorController, 3);        
+    //     rollerouttakebutton
+    //     .whileTrue(new RollerSpitterCommand(() -> RollerConstants.SPITTER_ROLLER_TOP_EJECT_VALUE, () -> 0.0, () -> RollerConstants.SPITTER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem));
 
     // Set the default command for the drive subsystem to an instance of the
     // DriveCommand with the values provided by the joystick axes on the driver
@@ -110,12 +110,12 @@ public class RobotContainer {
     // Set the default command for the roller subsystem to an instance of
     // RollerCommand with the values provided by the triggers on the operator
     // controller
-    rollerSubsystem.setDefaultCommand(new RollerSpitterCommand(
-        () -> 0,
-        () -> 0,
-        () -> 0,
-        () -> 0,
-        rollerSubsystem));
+    // rollerSubsystem.setDefaultCommand(new RollerSpitterCommand(
+    //     () -> 0,
+    //     () -> 0,
+    //     () -> 0,
+    //     () -> 0,
+    //     rollerSubsystem));
   }
 
   /**

@@ -61,12 +61,12 @@ public class CANDriveSubsystem extends SubsystemBase {
     rightFrontConfig
       .smartCurrentLimit(DRIVE_MOTOR_CURRENT_LIMIT)
       .voltageCompensation(12)
-      .inverted(false);
+      .inverted(true);
 
     rightRearConfig
       .smartCurrentLimit(DRIVE_MOTOR_CURRENT_LIMIT)
       .voltageCompensation(12)
-      .inverted(true)
+      .inverted(false)
       .follow(RIGHT_LEADER_ID);
 
 
