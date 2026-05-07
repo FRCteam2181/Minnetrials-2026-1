@@ -64,6 +64,8 @@ public class CANDriveSubsystem extends SubsystemBase {
       .inverted(true);
 
     rightRearConfig
+
+
       .smartCurrentLimit(DRIVE_MOTOR_CURRENT_LIMIT)
       .voltageCompensation(12)
       .inverted(false)
@@ -74,7 +76,7 @@ public class CANDriveSubsystem extends SubsystemBase {
 
     leftFront.configure(leftFrontConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     leftRear.configure(leftRearConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-    rightRear.configure(leftRearConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    rightRear.configure(rightRearConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     rightFront.configure(rightFrontConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
     /*Sets current limits for the drivetrain motors. This helps reduce the likelihood of wheel spin, reduces motor heating
