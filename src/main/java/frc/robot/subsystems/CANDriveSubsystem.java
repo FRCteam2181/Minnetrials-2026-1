@@ -16,9 +16,29 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.SparkParameters;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.controllers.PPLTVController;
+import com.pathplanner.lib.pathfinding.Pathfinding;
+import com.pathplanner.lib.util.PathPlannerLogging;
+import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.Pigeon2Configuration;
+import com.ctre.phoenix6.hardware.Pigeon2;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+
+// Logging
+import org.littletonrobotics.junction.AutoLogOutput;
+import org.littletonrobotics.junction.Logger;
 
 /* This class declares the subsystem for the robot drivetrain if controllers are connected via CAN. Make sure to go to
  * RobotContainer and uncomment the line declaring this subsystem and comment the line for PWMDrivetrain.
@@ -32,6 +52,8 @@ public class CANDriveSubsystem extends SubsystemBase {
   different method calls. */
   DifferentialDrive m_drivetrain;
 
+  Pigeon2 pigeon;
+
   /*Constructor. This method is called when an instance of the class is created. This should generally be used to set up
    * member variables and perform any configuration or set up necessary on hardware.
    */
@@ -40,6 +62,16 @@ public class CANDriveSubsystem extends SubsystemBase {
     SparkMax leftRear = new SparkMax(LEFT_FOLLOWER_ID, MotorType.kBrushless);
     SparkMax rightFront = new SparkMax(RIGHT_LEADER_ID, MotorType.kBrushless);
     SparkMax rightRear = new SparkMax(RIGHT_FOLLOWER_ID, MotorType.kBrushless);
+
+    // Gyro
+    pigeon = new Pigeon2(PIGEON_CAN_ID);
+    StatusSignal<Angle> yaw = pigeon.getYaw();
+    StatusSignal<AngularVelocity> yawVelocity = pigeon.getAngularVelocityZWorld();
+
+    pigeon.getConfigurator().apply(new Pigeon2Configuration());
+    pigeon.getConfigurator().setYaw(0.0);
+    BaseStatusSignal.setUpdateFrequencyForAll(50.0, yaw, yawVelocity);
+    pigeon.optimizeBusUtilization();
     
     // Defining CONFIGS
     SparkMaxConfig leftFrontConfig = new SparkMaxConfig();
@@ -98,16 +130,52 @@ public class CANDriveSubsystem extends SubsystemBase {
     // Put the front motors into the differential drive object. This will control all 4 motors with
     // the rears set to follow the fronts
     m_drivetrain = new DifferentialDrive(leftFront, rightFront);
+
+    // AutoBuilder.configure(
+    //     this::getPose,
+    //     this::setPose,
+    //     () ->
+    //         kinematics.toChassisSpeeds(
+    //             new DifferentialDriveWheelSpeeds(
+    //                 getLeftVelocityMetersPerSec(), getRightVelocityMetersPerSec())),
+    //     (ChassisSpeeds speeds) -> runClosedLoop(speeds),
+    //     new PPLTVController(0.02, maxSpeedMetersPerSec),
+    //     ppConfig,
+    //     () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+    //     this);
+    // Pathfinding.setPathfinder(new LocalADStarAK());
+    // PathPlannerLogging.setLogActivePathCallback(
+    //     (activePath) -> {
+    //       Logger.recordOutput("Odometry/Trajectory", activePath.toArray(new Pose2d[0]));
+    //     });
+    // PathPlannerLogging.setLogTargetPoseCallback(
+    //     (targetPose) -> {
+    //       Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose);
+    //     });
+
+    // // Configure SysId
+    // sysId =
+    //     new SysIdRoutine(
+    //         new SysIdRoutine.Config(
+    //             null,
+    //             null,
+    //             null,
+    //             (state) -> Logger.recordOutput("Drive/SysIdState", state.toString())),
+    //         new SysIdRoutine.Mechanism(
+    //             (voltage) -> runOpenLoop(voltage.in(Volts), voltage.in(Volts)), null, this));
   }
 
   /*Method to control the drivetrain using arcade drive. Arcade drive takes a speed in the X (forward/back) direction
    * and a rotation about the Z (turning the robot about it's center) and uses these to control the drivetrain motors */
   public void arcadeDrive(double speed, double rotation) {
     m_drivetrain.arcadeDrive(speed, rotation);
+    Logger.recordOutput("Drive/SpeedInput", speed);
+    Logger.recordOutput("Drive/RotationInput", rotation);
   }
 
   @Override
   public void periodic() {
+    Logger.recordOutput("Pigeon/Yaw", pigeon.getYaw().getValue());
     /*This method will be called once per scheduler run. It can be used for running tasks we know we want to update each
      * loop such as processing sensor data. Our drivetrain is simple so we don't have anything to put here */
   }

@@ -23,6 +23,8 @@ public final class Constants {
     public static final int RIGHT_LEADER_ID = 7;
     public static final int RIGHT_FOLLOWER_ID = 5;
 
+    public static final int PIGEON_CAN_ID = 0; // set later
+
     public static final int DRIVE_MOTOR_CURRENT_LIMIT = 60;
   }
 
