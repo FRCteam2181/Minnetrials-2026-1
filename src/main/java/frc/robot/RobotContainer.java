@@ -5,9 +5,11 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.Joystick;
+import com.pathplanner.lib.auto.AutoBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -43,7 +45,7 @@ public class RobotContainer {
       OperatorConstants.OPERATOR_CONTROLLER_PORT);
 
   // The autonomous chooser
-  private final SendableChooser<Command> autoChooser = new SendableChooser<>();
+  private final SendableChooser<Command> autoChooser;
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -51,6 +53,14 @@ public class RobotContainer {
   public RobotContainer() {
     // Set up command bindings
     configureBindings();
+
+    autoChooser = AutoBuilder.buildAutoChooser();
+
+    // Set the default auto (do nothing)
+    autoChooser.setDefaultOption("Do Nothing", Commands.none());
+
+    // Add a simple auto option to have the robot drive forward for 1 second then stop
+    autoChooser.addOption("Drive Forward", driveSubsystem.arcadeDriveCommand(0.5, 0).withTimeout(1));
 
     // Set the options to show up in the Dashboard for selecting auto modes. If you
     // add additional auto modes you can add additional lines here with

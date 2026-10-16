@@ -17,6 +17,7 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.SparkParameters;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPLTVController;
 import com.pathplanner.lib.pathfinding.Pathfinding;
 import com.pathplanner.lib.util.PathPlannerLogging;
@@ -25,16 +26,29 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.hardware.Pigeon2;
 
+
+
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
+// import edu.wpi.first.math.kinematics.Odometry;
 import edu.wpi.first.math.kinematics.DifferentialDriveWheelSpeeds;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Distance;
+// import edu.wpi.first.units.measure.;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.Constants.DriveConstants;
+
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 
 // Logging
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -52,21 +66,38 @@ public class CANDriveSubsystem extends SubsystemBase {
   different method calls. */
   DifferentialDrive m_drivetrain;
 
+  private final StructPublisher<Pose2d> posePublisher =
+      NetworkTableInstance.getDefault()
+          .getTable("Drive")
+          .getStructTopic("Robot Pose", Pose2d.struct)
+          .publish();
+
   Pigeon2 pigeon;
+
+  SparkMax leftFront;
+  SparkMax leftRear;
+  SparkMax rightFront;
+  SparkMax rightRear;
+
+  private final DifferentialDriveOdometry m_odometry;
+
+  private final Field2d m_field = new Field2d();
 
   /*Constructor. This method is called when an instance of the class is created. This should generally be used to set up
    * member variables and perform any configuration or set up necessary on hardware.
    */
   public CANDriveSubsystem() {
-    SparkMax leftFront = new SparkMax(LEFT_LEADER_ID, MotorType.kBrushless);
-    SparkMax leftRear = new SparkMax(LEFT_FOLLOWER_ID, MotorType.kBrushless);
-    SparkMax rightFront = new SparkMax(RIGHT_LEADER_ID, MotorType.kBrushless);
-    SparkMax rightRear = new SparkMax(RIGHT_FOLLOWER_ID, MotorType.kBrushless);
+    leftFront = new SparkMax(LEFT_LEADER_ID, MotorType.kBrushless);
+    leftRear = new SparkMax(LEFT_FOLLOWER_ID, MotorType.kBrushless);
+    rightFront = new SparkMax(RIGHT_LEADER_ID, MotorType.kBrushless);
+    rightRear = new SparkMax(RIGHT_FOLLOWER_ID, MotorType.kBrushless);
 
     // Gyro
     pigeon = new Pigeon2(PIGEON_CAN_ID);
     StatusSignal<Angle> yaw = pigeon.getYaw();
     StatusSignal<AngularVelocity> yawVelocity = pigeon.getAngularVelocityZWorld();
+    // StatusSignal<Double> pigeonX = pigeon.getQuatX();
+    // StatusSignal<Double> pigeonY = pigeon.getQuatY();
 
     pigeon.getConfigurator().apply(new Pigeon2Configuration());
     pigeon.getConfigurator().setYaw(0.0);
@@ -96,8 +127,6 @@ public class CANDriveSubsystem extends SubsystemBase {
       .inverted(true);
 
     rightRearConfig
-
-
       .smartCurrentLimit(DRIVE_MOTOR_CURRENT_LIMIT)
       .voltageCompensation(12)
       .inverted(false)
@@ -110,6 +139,10 @@ public class CANDriveSubsystem extends SubsystemBase {
     leftRear.configure(leftRearConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     rightRear.configure(rightRearConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     rightFront.configure(rightFrontConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+    // Odometey setup
+     m_odometry = new DifferentialDriveOdometry(
+                pigeon.getRotation2d(), leftFront.getEncoder().getPosition(), rightFront.getEncoder().getPosition());
 
     /*Sets current limits for the drivetrain motors. This helps reduce the likelihood of wheel spin, reduces motor heating
      *at stall (Drivetrain pushing against something) and helps maintain battery voltage under heavy demand */
@@ -163,6 +196,31 @@ public class CANDriveSubsystem extends SubsystemBase {
     //             (state) -> Logger.recordOutput("Drive/SysIdState", state.toString())),
     //         new SysIdRoutine.Mechanism(
     //             (voltage) -> runOpenLoop(voltage.in(Volts), voltage.in(Volts)), null, this));
+
+    // PathPlanner AutoBuilder Config
+
+    RobotConfig config;
+    try{
+      config = RobotConfig.fromGUISettings();
+      AutoBuilder.configure(m_odometry::getPoseMeters, this::resetOdometry, this::getChassisSpeeds,
+                this::driveRobotRelative, new PPLTVController(0.02), config, () -> {
+                                                                                                              // Boolean supplier that controls when the path will be mirrored for the red alliance
+                                                                                                              // This will flip the path being followed to the red side of the field.
+                                                                                                              // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+
+                                                                                                              var alliance = DriverStation.getAlliance();
+                                                                                                              if (alliance.isPresent()) {
+                                                                                                                return alliance.get() == DriverStation.Alliance.Red;
+                                                                                                              }
+                                                                                                              return false;
+                                                                                                            }, this);
+    } catch (Exception e) {
+      // Handle exception as needed
+      e.printStackTrace();
+    }
+
+    
+
   }
 
   /*Method to control the drivetrain using arcade drive. Arcade drive takes a speed in the X (forward/back) direction
@@ -173,8 +231,47 @@ public class CANDriveSubsystem extends SubsystemBase {
     Logger.recordOutput("Drive/RotationInput", rotation);
   }
 
+  /*Method to control the drivetrain using arcade drive. Arcade drive takes a speed in the X (forward/back) direction
+   * and a rotation about the Z (turning the robot about it's center) and uses these to control the drivetrain motors */
+  public Command arcadeDriveCommand(double speed, double rotation) {
+    return run(() -> {m_drivetrain.arcadeDrive(speed, rotation);
+    Logger.recordOutput("Drive/SpeedInput", speed);
+    Logger.recordOutput("Drive/RotationInput", rotation);});
+  }
+
+  public void driveRobotRelative(ChassisSpeeds speeds) {
+      DifferentialDriveWheelSpeeds wheelSpeeds = DriveConstants.kDriveKinematics.toWheelSpeeds(speeds);
+
+      tankDrive(wheelSpeeds.leftMetersPerSecond,wheelSpeeds.rightMetersPerSecond);
+  }
+
+  public void tankDrive(double leftSpeed, double rightSpeed){
+    m_drivetrain.tankDrive(leftSpeed,rightSpeed);
+    Logger.recordOutput("Drive/LeftSpeedInput", leftSpeed);
+    Logger.recordOutput("Drive/RightSpeedInput", rightSpeed);
+  }
+
+  public ChassisSpeeds getChassisSpeeds() {
+    DifferentialDriveWheelSpeeds wheelSpeeds = new DifferentialDriveWheelSpeeds(leftFront.getEncoder().getVelocity(),
+            rightFront.getEncoder().getVelocity());
+    ChassisSpeeds speeds = DriveConstants.kDriveKinematics.toChassisSpeeds(wheelSpeeds);
+
+    return speeds;
+  }
+
+    public void resetOdometry(Pose2d pose) {
+        m_odometry.resetPosition(pigeon.getRotation2d(), leftFront.getEncoder().getPosition(),
+            rightFront.getEncoder().getPosition(), pose);
+    }
+
   @Override
   public void periodic() {
+    m_odometry.update(pigeon.getRotation2d(), leftFront.getEncoder().getPosition(),
+            rightFront.getEncoder().getPosition());
+
+    m_field.setRobotPose(m_odometry.getPoseMeters());
+
+    posePublisher.accept(m_odometry.getPoseMeters());
     Logger.recordOutput("Pigeon/Yaw", pigeon.getYaw().getValue());
     /*This method will be called once per scheduler run. It can be used for running tasks we know we want to update each
      * loop such as processing sensor data. Our drivetrain is simple so we don't have anything to put here */
