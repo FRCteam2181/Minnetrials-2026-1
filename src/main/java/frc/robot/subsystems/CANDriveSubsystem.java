@@ -17,6 +17,7 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.SparkParameters;
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathfindingCommand;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPLTVController;
 import com.pathplanner.lib.pathfinding.Pathfinding;
@@ -25,6 +26,8 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.hardware.Pigeon2;
+
+import edu.wpi.first.math.VecBuilder;
 
 
 
@@ -46,7 +49,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.DriveConstants;
-
+import frc.robot.commands.DriveCommand;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
 
@@ -78,6 +81,8 @@ public class CANDriveSubsystem extends SubsystemBase {
   SparkMax leftRear;
   SparkMax rightFront;
   SparkMax rightRear;
+
+  double testSpeed = 0;
 
   private final DifferentialDriveOdometry m_odometry;
 
@@ -142,7 +147,7 @@ public class CANDriveSubsystem extends SubsystemBase {
 
     // Odometey setup
      m_odometry = new DifferentialDriveOdometry(
-                pigeon.getRotation2d(), leftFront.getEncoder().getPosition(), rightFront.getEncoder().getPosition());
+                pigeon.getRotation2d(), 0, 0);
 
     /*Sets current limits for the drivetrain motors. This helps reduce the likelihood of wheel spin, reduces motor heating
      *at stall (Drivetrain pushing against something) and helps maintain battery voltage under heavy demand */
@@ -202,8 +207,17 @@ public class CANDriveSubsystem extends SubsystemBase {
     RobotConfig config;
     try{
       config = RobotConfig.fromGUISettings();
-      AutoBuilder.configure(m_odometry::getPoseMeters, this::resetOdometry, this::getChassisSpeeds,
-                this::driveRobotRelative, new PPLTVController(0.02), config, () -> {
+      AutoBuilder.configure(
+                m_odometry::getPoseMeters, 
+                this::resetOdometry, 
+                this::getChassisSpeeds,
+                this::driveRobotRelative, 
+                new PPLTVController(VecBuilder.fill(0.03, 0.03, 5), 
+                                    VecBuilder.fill(0.1, 60),
+                                    0.02,
+                                    5.45), 
+                
+                config, () -> {
                                                                                                               // Boolean supplier that controls when the path will be mirrored for the red alliance
                                                                                                               // This will flip the path being followed to the red side of the field.
                                                                                                               // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
@@ -219,6 +233,7 @@ public class CANDriveSubsystem extends SubsystemBase {
       e.printStackTrace();
     }
 
+    PathfindingCommand.warmupCommand().schedule();
     
 
   }
@@ -252,22 +267,35 @@ public class CANDriveSubsystem extends SubsystemBase {
   }
 
   public ChassisSpeeds getChassisSpeeds() {
-    DifferentialDriveWheelSpeeds wheelSpeeds = new DifferentialDriveWheelSpeeds(leftFront.getEncoder().getVelocity(),
-            rightFront.getEncoder().getVelocity());
+    DifferentialDriveWheelSpeeds wheelSpeeds = new DifferentialDriveWheelSpeeds((leftFront.getEncoder().getVelocity()*(DriveConstants.kWheelRadius * 2.0 * Math.PI)/60)*DriveConstants.DRIVE_GEAR_RATIO,
+            (rightFront.getEncoder().getVelocity()*(DriveConstants.kWheelRadius * 2.0 * Math.PI)/60)*DriveConstants.DRIVE_GEAR_RATIO);
     ChassisSpeeds speeds = DriveConstants.kDriveKinematics.toChassisSpeeds(wheelSpeeds);
 
     return speeds;
   }
 
     public void resetOdometry(Pose2d pose) {
-        m_odometry.resetPosition(pigeon.getRotation2d(), leftFront.getEncoder().getPosition(),
-            rightFront.getEncoder().getPosition(), pose);
+        m_odometry.resetPosition(pigeon.getRotation2d(), leftFront.getEncoder().getPosition() * DriveConstants.DRIVE_GEAR_RATIO * (DriveConstants.kWheelRadius * 2.0 * Math.PI),
+            rightFront.getEncoder().getPosition() * DriveConstants.DRIVE_GEAR_RATIO * (DriveConstants.kWheelRadius * 2.0 * Math.PI), pose);
+    }
+
+
+    public Command resetOdometryCommand(Pose2d pose) {
+        return run(() -> {resetOdometry(pose);});
     }
 
   @Override
   public void periodic() {
-    m_odometry.update(pigeon.getRotation2d(), leftFront.getEncoder().getPosition(),
-            rightFront.getEncoder().getPosition());
+    m_odometry.update(pigeon.getRotation2d(),
+            leftFront.getEncoder().getPosition() * DriveConstants.DRIVE_GEAR_RATIO * (DriveConstants.kWheelRadius * 2.0 * Math.PI),
+            rightFront.getEncoder().getPosition() * DriveConstants.DRIVE_GEAR_RATIO * (DriveConstants.kWheelRadius * 2.0 * Math.PI));
+
+    // if((leftFront.getEncoder().getVelocity()*(DriveConstants.kWheelRadius * 2.0 * Math.PI)/60)*DriveConstants.DRIVE_GEAR_RATIO > testSpeed){
+    //   testSpeed = (leftFront.getEncoder().getVelocity()*(DriveConstants.kWheelRadius * 2.0 * Math.PI)/60)*DriveConstants.DRIVE_GEAR_RATIO;
+    //   System.out.println(testSpeed);
+    // }
+
+    // System.out.println((leftFront.getEncoder().getVelocity()*(DriveConstants.kWheelRadius * 2.0 * Math.PI)/60)*DriveConstants.DRIVE_GEAR_RATIO);
 
     m_field.setRobotPose(m_odometry.getPoseMeters());
 

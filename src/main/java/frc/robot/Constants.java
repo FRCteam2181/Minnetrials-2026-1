@@ -36,7 +36,10 @@ public final class Constants {
 
     public static final int DRIVE_MOTOR_CURRENT_LIMIT = 60;
 
-    public static final double kTrackWidth = 0.5;
+    public static final double DRIVE_GEAR_RATIO = 0.1182;
+
+    public static final double kTrackWidth = 0.657;
+    public static final double kWheelRadius = 0.0762; // 3 inches
 
     public static final DifferentialDriveKinematics kDriveKinematics = new DifferentialDriveKinematics(kTrackWidth);
 
