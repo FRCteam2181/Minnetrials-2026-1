@@ -64,14 +64,18 @@ public class CANArmSubsystem extends SubsystemBase {
   }
 
   public Command runMotorForwardCommand(double percent){
-    return run(() -> {
+    return runEnd(() -> {
         spark.set(percent);
+    },()->{
+        spark.set(0);
     });
   }
 
-  public Command runMotorBackwardsCommand(double percent){
-    return run(() -> {
+  public Command runMotorReverseCommand(double percent){
+    return runEnd(() -> {
         spark.set(-percent);
+    },()->{
+        spark.set(0);
     });
   }
 

@@ -22,6 +22,7 @@ import frc.robot.commands.DriveCommand;
 // import frc.robot.commands.RollerSuckerCommand;
 import frc.robot.subsystems.CANDriveSubsystem;
 import frc.robot.subsystems.CANArmSubsystem;
+import frc.robot.subsystems.CANRollerSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -36,6 +37,7 @@ public class RobotContainer {
   // The robot's subsystems
   private final CANDriveSubsystem driveSubsystem = new CANDriveSubsystem();
   private final CANArmSubsystem armSubsystem = new CANArmSubsystem(ArmConstants.ARM_MOTOR_ID);
+  private final CANRollerSubsystem rollerSubsystem = new CANRollerSubsystem();
 
   // The driver's controller
   private final CommandXboxController driverController = new CommandXboxController(
@@ -121,7 +123,11 @@ public class RobotContainer {
 
     driverController.a().onTrue(driveSubsystem.resetOdometryCommand(new Pose2d()));
 
-    driverController.x().whileTrue(armSubsystem.runMotorForwardCommand(0.5));
+    driverController.rightBumper().whileTrue(armSubsystem.runMotorForwardCommand(0.7));
+    driverController.leftBumper().whileTrue(armSubsystem.runMotorReverseCommand(0.7));
+
+    driverController.rightTrigger().whileTrue(rollerSubsystem.runRollerSpitterCommand(0.5));
+    driverController.leftTrigger().whileTrue(rollerSubsystem.runRollerSuckerCommand(0.5));
 
     // Set the default command for the roller subsystem to an instance of
     // RollerCommand with the values provided by the triggers on the operator
