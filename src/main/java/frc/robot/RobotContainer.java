@@ -100,10 +100,21 @@ public class RobotContainer {
     // Set the A button to run the "RollerCommand" command with a fixed
     // value ejecting the gamepiece while the button is held
 
-    // before
-    // JoystickButton rollerintakebutton = new JoystickButton(operatorController, 1);
-    // rollerintakebutton
-    //     .whileTrue(new RollerSuckerCommand(() -> RollerConstants.SUCKER_ROLLER_EJECT_VALUE, () -> 0.0, rollerSubsystem));
+    // Intake + spit
+    JoystickButton rollerintakebutton = new JoystickButton(operatorController, 10);
+    rollerintakebutton
+        .whileTrue(rollerSubsystem.runRollerSuckerCommand(0.5));
+    JoystickButton rollerShootButton = new JoystickButton(operatorController, 11);
+    rollerShootButton
+        .whileTrue(rollerSubsystem.runRollerSpitterCommand(0.5));
+
+    // Arm up + down
+    JoystickButton armUpButton = new JoystickButton(operatorController, 7);
+    armUpButton
+        .whileTrue(armSubsystem.runMotorForwardCommand(0.7));
+    JoystickButton armDownButton = new JoystickButton(operatorController, 8);
+    armDownButton
+        .whileTrue(armSubsystem.runMotorReverseCommand(0.7));
     
     //     JoystickButton rollerouttakebutton = new JoystickButton(operatorController, 3);        
     //     rollerouttakebutton
@@ -120,6 +131,10 @@ public class RobotContainer {
         () -> -driverController.getRightX() * 0.5,
         driveSubsystem));
 
+    armSubsystem.setDefaultCommand(armSubsystem.runMotorForwardCommand(0));
+
+    rollerSubsystem.setDefaultCommand(rollerSubsystem.runRollerSpitterCommand(0));
+
 
     driverController.a().onTrue(driveSubsystem.resetOdometryCommand(new Pose2d()));
 
@@ -128,6 +143,8 @@ public class RobotContainer {
 
     driverController.rightTrigger().whileTrue(rollerSubsystem.runRollerSpitterCommand(0.5));
     driverController.leftTrigger().whileTrue(rollerSubsystem.runRollerSuckerCommand(0.5));
+
+
 
     // Set the default command for the roller subsystem to an instance of
     // RollerCommand with the values provided by the triggers on the operator
